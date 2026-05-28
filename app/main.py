@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from app.database import engine
 from app import models
+from app.routers import attendance, course, student
 
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
+
+app.include_router(course.router)
+app.include_router(student.router)
+app.include_router(attendance.router)
 
 @app.get("/")
 def root():
