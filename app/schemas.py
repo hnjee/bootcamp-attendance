@@ -69,3 +69,22 @@ class StudentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# QR 입퇴실
+class QrCheckRecordCreate(BaseModel):
+    student_id: uuid.UUID
+    date: date
+    checkin_time: Optional[datetime] = None
+    checkout_time: Optional[datetime] = None
+    result: str  # 정상/지각/조퇴/외출/결석/100분의50미만출석
+
+class QrCheckRecordResponse(BaseModel):
+    id: uuid.UUID
+    student_id: uuid.UUID
+    date: date
+    checkin_time: Optional[datetime] = None
+    checkout_time: Optional[datetime] = None
+    result: str
+
+    class Config:
+        from_attributes = True
