@@ -5,11 +5,11 @@ from app import models
 from app.schemas import LeaveRequestCreate, LeaveRequestResponse
 
 router = APIRouter(
-    prefix="/attendance",
-    tags=["attendance"]
+    prefix="/leave-request",
+    tags=["leave-request"]
 )
 
-@router.post("/leave", response_model=LeaveRequestResponse)
+@router.post("", response_model=LeaveRequestResponse)
 def create_leave_request(
     request: LeaveRequestCreate,
     db: Session = Depends(get_db)
@@ -29,3 +29,14 @@ def create_leave_request(
     db.refresh(leave_request)
 
     return leave_request
+
+@router.get("/{student_id}", response_model=list[LeaveRequestResponse])
+def get_leave_request(
+    student_id: str,
+    db: Session = Depends(get_db)
+):
+    request = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.student_id == student_id
+    ).all()
+
+    return request

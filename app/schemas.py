@@ -88,3 +88,23 @@ class QrCheckRecordResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 교시별 수업 출석 
+class ClassAttendanceCreate(BaseModel):
+    student_id: uuid.UUID
+    date: date
+    period: int
+    present: bool
+
+class ClassAttendanceResponse(BaseModel):
+    id: uuid.UUID
+    student_id: uuid.UUID
+    date: date
+    period: int
+    present: bool
+
+    class Config:
+        from_attributes = True
+
+
