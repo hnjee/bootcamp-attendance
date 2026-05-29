@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.schemas import StudentCreate, StudentResponse
+import uuid
+from typing import Optional
 
 router = APIRouter(
     prefix="/student",
@@ -42,3 +44,18 @@ def get_student(
         raise HTTPException(status_code=404, detail="수강생을 찾을 수 없습니다")
 
     return student
+
+@router.get("", response_model=list[StudentResponse])
+def get_students(
+    course_id: uuid.UUID, # 필수 값 -> 학생 리스트는 반드시 강의별로 
+    name: Optional[str] = None,  # 이름 검색 추가
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Student).filter(
+        models.Student.course_id == course_id
+    )
+
+    if name:
+        query = query.filter(models.Student.name.contains(name)) # WHERE name LIKE '%이름%'
+
+    return query.all()

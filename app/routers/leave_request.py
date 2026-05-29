@@ -3,6 +3,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.schemas import LeaveRequestCreate, LeaveRequestResponse
+from datetime import date as date_type
+import uuid
+from typing import Optional
+
 
 router = APIRouter(
     prefix="/leave-request",
@@ -40,3 +44,22 @@ def get_leave_request(
     ).all()
 
     return request
+
+@router.get("", response_model=list[LeaveRequestResponse])
+def get_leave_requests(
+    course_id: uuid.UUID, # 필수 값 -> 리스트는 반드시 강의별로 
+    name: Optional[str] = None,  # 학생명 검색 추가
+    date: Optional[date_type] = None, # 날짜 검색 추가
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.LeaveRequest).join(models.Student).filter(
+        models.Student.course_id == course_id
+    )
+
+    if name:
+        query = query.filter(models.Student.name.contains(name))
+
+    if date:
+        query = query.filter(models.LeaveRequest.date == date)
+
+    return query.all()

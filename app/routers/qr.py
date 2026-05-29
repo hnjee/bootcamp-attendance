@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.schemas import QrCheckRecordCreate, QrCheckRecordResponse
+from datetime import date as date_type
+import uuid
+from typing import Optional
 
 router = APIRouter(
     prefix="/qr",
@@ -30,7 +33,7 @@ def create_qr_record(
 
 
 @router.get("/{student_id}", response_model=list[QrCheckRecordResponse])
-def get_qr_records(
+def get_qr_record(
     student_id: str,
     db: Session = Depends(get_db)
 ):
@@ -39,3 +42,23 @@ def get_qr_records(
     ).all()
 
     return records
+
+
+@router.get("", response_model=list[QrCheckRecordResponse])
+def get_qr_records(
+    course_id: uuid.UUID, # 필수 값 -> 리스트는 반드시 강의별로 
+    name: Optional[str] = None,  # 학생명 검색 추가
+    date: Optional[date_type] = None, # 날짜 검색 추가
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.QrCheckRecord).join(models.Student).filter(
+        models.Student.course_id == course_id
+    )
+
+    if name:
+        query = query.filter(models.Student.name.contains(name))
+
+    if date:
+        query = query.filter(models.QrCheckRecord.date == date)
+
+    return query.all()

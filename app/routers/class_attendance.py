@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.schemas import ClassAttendanceCreate, ClassAttendanceResponse
+from datetime import date as date_type
+import uuid
+from typing import Optional
 
 router = APIRouter(
     prefix="/class-attendance",
@@ -39,3 +42,22 @@ def get_class_attendance(
     ).all()
 
     return attendance
+
+@router.get("", response_model=list[ClassAttendanceResponse])
+def get_class_attendances(
+    course_id: uuid.UUID, # 필수 값 -> 리스트는 반드시 강의별로 
+    name: Optional[str] = None,  # 학생명 검색 추가
+    date: Optional[date_type] = None, # 날짜 검색 추가
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.ClassAttendance).join(models.Student).filter(
+        models.Student.course_id == course_id
+    )
+
+    if name:
+        query = query.filter(models.Student.name.contains(name))
+
+    if date:
+        query = query.filter(models.ClassAttendance.date == date)
+
+    return query.all()
