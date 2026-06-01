@@ -14,6 +14,7 @@ class Course(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     total_periods = Column(Integer, nullable=False)
+    status = Column(String, default="시작 전")
 
 
 class Student(Base):
@@ -24,6 +25,7 @@ class Student(Base):
     name = Column(String, nullable=False)
     phone = Column(String)
     email = Column(String)
+    status = Column(String, default="수강 전")
     created_at = Column(DateTime, server_default=func.now())
 
 

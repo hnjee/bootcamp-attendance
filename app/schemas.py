@@ -2,35 +2,34 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from typing import Optional
 import uuid
+from enum import Enum
 
 
-# 출결 신고 생성 (수강생이 신고할 때 보내는 데이터)
-class LeaveRequestCreate(BaseModel):
-    student_id: uuid.UUID
-    date: date
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    type: str
-    official: bool = False
-    reason: Optional[str] = None
+# Enum 정의
+class LeaveRequestStatus(str, Enum):
+    PENDING = "신청"
+    CONFIRMED = "확인"
+    DOCS_SUBMITTED = "서류제출"
+    DOCS_APPROVED = "서류승인"
+    DOCS_REJECTED = "서류반려"
+    CANCELLED = "신청취소"
 
+class StudentStatus(str, Enum):
+    BEFORE = "수강 전"
+    ACTIVE = "수강 중"
+    COMPLETED = "수료"
+    CANCELLED = "수강 취소"
 
-# 출결 신고 응답 (API가 돌려주는 데이터)
-class LeaveRequestResponse(BaseModel):
-    id: uuid.UUID
-    student_id: uuid.UUID
-    date: date
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    type: str
-    official: bool
-    reason: Optional[str] = None
-    status: str
-    document_url: Optional[str] = None
-    created_at: datetime
+class CourseStatus(str, Enum):
+    BEFORE = "시작 전"
+    ACTIVE = "진행 중"
+    ENDED = "종료"
 
-    class Config:
-        from_attributes = True
+class LeaveRequestType(str, Enum):
+    LATE = "지각"
+    OUT = "외출"
+    EARLY_LEAVE = "조퇴"
+    ABSENT = "결석"
 
 # Course
 class CourseCreate(BaseModel):
@@ -47,6 +46,7 @@ class CourseResponse(BaseModel):
     start_date: date
     end_date: date
     total_periods: int
+    status: CourseStatus
 
     class Config:
         from_attributes = True
@@ -65,10 +65,39 @@ class StudentResponse(BaseModel):
     name: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    status: StudentStatus
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+# 출결 신고
+class LeaveRequestCreate(BaseModel):
+    student_id: uuid.UUID
+    date: date
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    type: LeaveRequestType
+    official: bool = False
+    reason: Optional[str] = None
+
+class LeaveRequestResponse(BaseModel):
+    id: uuid.UUID
+    student_id: uuid.UUID
+    date: date
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    type: LeaveRequestType
+    official: bool
+    reason: Optional[str] = None
+    status: LeaveRequestStatus
+    document_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 # QR 입퇴실
 class QrCheckRecordCreate(BaseModel):
@@ -76,7 +105,7 @@ class QrCheckRecordCreate(BaseModel):
     date: date
     checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
-    result: str  # 정상/지각/조퇴/외출/결석/100분의50미만출석
+    result: str
 
 class QrCheckRecordResponse(BaseModel):
     id: uuid.UUID
@@ -90,7 +119,7 @@ class QrCheckRecordResponse(BaseModel):
         from_attributes = True
 
 
-# 교시별 수업 출석 
+# 교시별 수업 출석
 class ClassAttendanceCreate(BaseModel):
     student_id: uuid.UUID
     date: date
@@ -106,5 +135,3 @@ class ClassAttendanceResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-

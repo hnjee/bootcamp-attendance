@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
-from app.schemas import StudentCreate, StudentResponse
+from app.schemas import StudentCreate, StudentResponse, StudentStatus
 import uuid
 from typing import Optional
 
@@ -59,3 +59,21 @@ def get_students(
         query = query.filter(models.Student.name.contains(name)) # WHERE name LIKE '%이름%'
 
     return query.all()
+
+@router.patch("/{student_id}/status")
+def update_student_status(
+    student_id: str,
+    status: StudentStatus,
+    db: Session = Depends(get_db)
+):
+    student = db.query(models.Student).filter(
+        models.Student.id == student_id
+    ).first()
+
+    if not student:
+        raise HTTPException(status_code=404, detail="수강생을 찾을 수 없습니다")
+
+    student.status = status
+    db.commit()
+    db.refresh(student)
+    return student

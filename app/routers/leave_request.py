@@ -2,11 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
-from app.schemas import LeaveRequestCreate, LeaveRequestResponse
+from app.schemas import LeaveRequestCreate, LeaveRequestResponse, LeaveRequestStatus
 from datetime import date as date_type
 import uuid
 from typing import Optional
-
 
 router = APIRouter(
     prefix="/leave-request",
@@ -63,3 +62,21 @@ def get_leave_requests(
         query = query.filter(models.LeaveRequest.date == date)
 
     return query.all()
+
+@router.patch("/{leave_request_id}/status")
+def update_leave_request_status(
+    leave_request_id: str,
+    status: LeaveRequestStatus,  # Enum으로 제한!
+    db: Session = Depends(get_db)
+):
+    leave_request = db.query(models.LeaveRequest).filter(
+        models.LeaveRequest.id == leave_request_id
+    ).first()
+
+    if not leave_request:
+        raise HTTPException(status_code=404, detail="신청을 찾을 수 없습니다")
+
+    leave_request.status = status
+    db.commit()
+    db.refresh(leave_request)
+    return leave_request
