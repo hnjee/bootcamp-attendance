@@ -135,3 +135,18 @@ class ClassAttendanceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Zoom 출석 인식 결과
+class ZoomParticipants(BaseModel):
+    names: list[str]
+
+class ZoomRecognizeResponse(BaseModel):
+    extracted_names: list[str]  # AI가 인식한 전체 이름
+    matched: list[str]          # DB와 매칭된 이름
+    unmatched: list[str]        # 매칭 안된 이름
+
+class ZoomSaveRequest(BaseModel):
+    course_id: uuid.UUID
+    date: date
+    period: int
+    matched_names: list[str]    # 튜터가 확인한 최종 출석자 이름
