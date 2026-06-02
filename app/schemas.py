@@ -14,6 +14,21 @@ class LeaveRequestStatus(str, Enum):
     DOCS_REJECTED = "서류반려"
     CANCELLED = "신청취소"
 
+class LeaveRequestType(str, Enum):
+    LATE = "지각"
+    OUT = "외출"
+    EARLY_LEAVE = "조퇴"
+    ABSENT = "결석"
+
+class LeaveRequestReason(str, Enum):
+    ILLNESS = "질병/입원"
+    MILITARY = "예비군/민방위훈련"
+    JOB_INTERVIEW = "입사시험/면접"
+    CERTIFICATION = "자격증시험"
+    WEDDING = "결혼"
+    BEREAVEMENT = "사망"
+    CHILDBIRTH = "출산"
+
 class StudentStatus(str, Enum):
     BEFORE = "수강 전"
     ACTIVE = "수강 중"
@@ -24,12 +39,6 @@ class CourseStatus(str, Enum):
     BEFORE = "시작 전"
     ACTIVE = "진행 중"
     ENDED = "종료"
-
-class LeaveRequestType(str, Enum):
-    LATE = "지각"
-    OUT = "외출"
-    EARLY_LEAVE = "조퇴"
-    ABSENT = "결석"
 
 # Course
 class CourseCreate(BaseModel):
@@ -80,7 +89,7 @@ class LeaveRequestCreate(BaseModel):
     end_time: Optional[datetime] = None
     type: LeaveRequestType
     official: bool = False
-    reason: Optional[str] = None
+    reason: Optional[LeaveRequestReason] = None
 
 class LeaveRequestResponse(BaseModel):
     id: uuid.UUID
@@ -90,7 +99,7 @@ class LeaveRequestResponse(BaseModel):
     end_time: Optional[datetime] = None
     type: LeaveRequestType
     official: bool
-    reason: Optional[str] = None
+    reason: Optional[LeaveRequestReason] = None
     status: LeaveRequestStatus
     document_url: Optional[str] = None
     created_at: datetime
@@ -98,6 +107,10 @@ class LeaveRequestResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# 공가 서류 AI 분석 결과
+class DocumentAnalysisResponse(BaseModel):
+    is_valid: bool          # 승인 가능 여부
+    reason: str             # 판단 이유
 
 # QR 입퇴실
 class QrCheckRecordCreate(BaseModel):
@@ -150,3 +163,4 @@ class ZoomSaveRequest(BaseModel):
     date: date
     period: int
     matched_names: list[str]    # 튜터가 확인한 최종 출석자 이름
+
