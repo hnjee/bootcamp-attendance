@@ -10,9 +10,14 @@ import os
 import base64
 import uuid
 import aiofiles
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+llm = ChatOpenAI(
+    model="gpt-4o",
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+document_llm = llm.with_structured_output(DocumentAnalysisResponse)
 
 router = APIRouter(
     prefix="/leave-request",
@@ -144,15 +149,8 @@ async def analyze_document(
         content = await f.read()
     base64_image = base64.b64encode(content).decode("utf-8")
 
-    reason = leave_request.reason 
-
-    # GPT Vision으로 서류 분석 (Structured Output)
-    response = client.beta.chat.completions.parse(
-        model="gpt-4o",
-        messages=[
-            {
-                "role": "system",
-                "content": """당신은 부트캠프 공가 서류를 검토하는 전문가입니다.
+    response = document_llm.invoke([
+        SystemMessage(content="""당신은 부트캠프 공가 서류를 검토하는 전문가입니다.
                 아래 가이드라인에 따라 해당 건의 공가 사유에 맞는 서류가 제출되어 있는지 검토해주세요. 
                 - 질병/입원: 진료확인서 또는 통원확인서 또는 입퇴원확인서 / 서류에 질병코드 필수
                 - 자격증시험: 시험응시확인서 또는 수험표(감독관 도장 필수) / 접수확인서 불가
@@ -160,26 +158,19 @@ async def analyze_document(
                 - 예비군/민방위훈련: 소집필증 또는 훈련필증
                 - 결혼: 청첩장 + 가족관계증명서
                 - 사망: 사망진단서 + 가족관계증명서
-                - 출산: 출생증명서 + 가족관계증명서"""
+                - 출산: 출생증명서 + 가족관계증명서"""),
+        HumanMessage(content=[
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{base64_image}"
+                }
             },
             {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{base64_image}"
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": f"이 서류가 '{leave_request.reason}' 공가 사유의 처리 기준에 맞는지 분석해줘."
-                    }
-                ]
+                "type": "text",
+                "text": f"이 서류가 '{leave_request.reason}' 공가 사유의 처리 기준에 맞는지 판단해주세요."
             }
-        ],
-        response_format=DocumentAnalysisResponse  # Structured Output!
-    )
+        ])
+    ])
 
-    result = response.choices[0].message.parsed
-    return result
+    return response  # 바로 DocumentAnalysisResponse 객체

@@ -2,20 +2,28 @@ import os
 import base64
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from openai import OpenAI
 from app.database import get_db
 from app import models
 from app.schemas import ZoomParticipants, ZoomRecognizeResponse, ZoomSaveRequest
 from datetime import date
 import uuid
 from typing import Optional
+#from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 router = APIRouter(
     prefix="/zoom",
     tags=["zoom"]
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+#client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+llm = ChatOpenAI(
+    model="gpt-4o",
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+zoom_llm = llm.with_structured_output(ZoomParticipants)
 
 
 # 1. AI 인식만
@@ -29,35 +37,28 @@ async def recognize_zoom_capture(
     image_data = await file.read()
     base64_image = base64.b64encode(image_data).decode("utf-8")
 
-    # GPT Vision으로 이름 추출
-    response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
-        messages=[
+    # GPT Vision 호출 부분 교체
+    response = zoom_llm.invoke([
+        HumanMessage(content=[
             {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{base64_image}"
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": """이 Zoom 화면에 표시된 모든 참가자 이름을 추출해주세요.
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{base64_image}"
+                }
+            },
+            {
+                "type": "text",
+                "text": """이 Zoom 화면에 표시된 모든 참가자 이름을 추출해주세요.
                         규칙:
                         1. 이름 앞에 [인프라 11기] 같은 기수 표시가 있는 사용자 이름만 추출
                         2. 단, 기수 표시는 제거하고 순수한 이름만 추출, 예: [인프라 11기] 지영기 -> 지영기)
                         3. 조건에 맞는 참가자 이름을 빠짐 없이 추출
                         """
-                    }
-                ]
             }
-        ],
-        response_format=ZoomParticipants
-    )
+        ])
+    ])
 
-    extracted_names = response.choices[0].message.parsed.names
+    extracted_names = response.names  # .parsed 없이 바로 접근!
 
     # DB에서 해당 강의 수강생과 매칭
     students = db.query(models.Student).filter(
