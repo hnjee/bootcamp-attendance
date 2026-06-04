@@ -61,10 +61,10 @@ async def recognize_zoom_capture(
     extracted_names = response.names  # .parsed 없이 바로 접근!
 
     # DB에서 해당 강의 수강생과 매칭
-    students = db.query(models.Student).filter(
-        models.Student.course_id == course_id
+    users = db.query(models.User).filter(
+        models.User.course_id == course_id
     ).all()
-    student_names = [s.name for s in students]
+    student_names = [s.name for s in users]
 
     matched = [name for name in extracted_names if name in student_names]
     unmatched = [name for name in extracted_names if name not in student_names]
@@ -83,18 +83,18 @@ def save_zoom_attendance(
     db: Session = Depends(get_db)
 ):
     # 해당 강의 전체 수강생 조회
-    students = db.query(models.Student).filter(
-        models.Student.course_id == request.course_id
+    users = db.query(models.User).filter(
+        models.User.course_id == request.course_id
     ).all()
 
 
     # matched된 학생 출석처리 
-    for student in students:
+    for user in users:
         attendance = models.ClassAttendance(
-            student_id=student.id,
+            user_id=user.id,
             date=request.date,
             period=request.period,
-            present=student.name in request.matched_names
+            present=user.name in request.matched_names
         )
         db.add(attendance)
 
@@ -102,7 +102,7 @@ def save_zoom_attendance(
 
     return {
         "message": "출석 저장 완료",
-        "total": len(students),
+        "total": len(users),
         "present": len(request.matched_names),
-        "absent": len(students) - len(request.matched_names)
+        "absent": len(users) - len(request.matched_names)
     }

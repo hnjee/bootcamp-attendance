@@ -1,8 +1,9 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, Integer, Date, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, Integer, Date, DateTime, ForeignKey, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.database import Base
+from app.schemas import UserRole
 
 
 class Course(Base):
@@ -16,24 +17,24 @@ class Course(Base):
     total_periods = Column(Integer, nullable=False)
     status = Column(String, default="시작 전")
 
-
-class Student(Base):
-    __tablename__ = "student"
+class User(Base):
+    __tablename__ = "user"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    course_id = Column(UUID(as_uuid=True), ForeignKey("course.id"), nullable=False)
+    course_id = Column(UUID(as_uuid=True), ForeignKey("course.id"), nullable=True)  # 튜터/운영진은 없을 수 있어요
     name = Column(String, nullable=False)
     phone = Column(String)
-    email = Column(String)
+    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
+    role = Column(SAEnum(UserRole), nullable=False, default=UserRole.STUDENT)
     status = Column(String, default="수강 전")
     created_at = Column(DateTime, server_default=func.now())
-
 
 class LeaveRequest(Base):
     __tablename__ = "leave_request"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("student.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
     date = Column(Date, nullable=False)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
@@ -49,7 +50,7 @@ class QrCheckRecord(Base):
     __tablename__ = "qr_check_record"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("student.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
     checkin_time = Column(DateTime)
     checkout_time = Column(DateTime)
     date = Column(Date, nullable=False)
@@ -60,7 +61,7 @@ class ClassAttendance(Base):
     __tablename__ = "class_attendance"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("student.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
     date = Column(Date, nullable=False)
     period = Column(Integer, nullable=False)
     present = Column(Boolean, nullable=False, default=False)

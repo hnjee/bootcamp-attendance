@@ -6,6 +6,12 @@ from enum import Enum
 
 
 # Enum 정의
+class UserRole(str, Enum):
+    STUDENT = "student"
+    TEACHER = "teacher"
+    TUTOR = "tutor"
+    ADMIN = "admin"
+
 class LeaveRequestStatus(str, Enum):
     PENDING = "신청"
     CONFIRMED = "확인"
@@ -61,19 +67,21 @@ class CourseResponse(BaseModel):
         from_attributes = True
 
 
-# Student
-class StudentCreate(BaseModel):
-    course_id: uuid.UUID
+class UserCreate(BaseModel):
+    course_id: Optional[uuid.UUID] = None  # 튜터/운영진은 없을 수 있음
     name: str
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: str
+    password: str
+    role: UserRole = UserRole.STUDENT  # 기본값은 수강생
 
-class StudentResponse(BaseModel):
+class UserResponse(BaseModel):
     id: uuid.UUID
-    course_id: uuid.UUID
+    course_id: Optional[uuid.UUID] = None
     name: str
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: str
+    role: UserRole
     status: StudentStatus
     created_at: datetime
 
@@ -83,7 +91,7 @@ class StudentResponse(BaseModel):
 
 # 출결 신고
 class LeaveRequestCreate(BaseModel):
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -93,7 +101,7 @@ class LeaveRequestCreate(BaseModel):
 
 class LeaveRequestResponse(BaseModel):
     id: uuid.UUID
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -114,7 +122,7 @@ class DocumentAnalysisResponse(BaseModel):
 
 # QR 입퇴실
 class QrCheckRecordCreate(BaseModel):
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
@@ -122,7 +130,7 @@ class QrCheckRecordCreate(BaseModel):
 
 class QrCheckRecordResponse(BaseModel):
     id: uuid.UUID
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
@@ -134,14 +142,14 @@ class QrCheckRecordResponse(BaseModel):
 
 # 교시별 수업 출석
 class ClassAttendanceCreate(BaseModel):
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     period: int
     present: bool
 
 class ClassAttendanceResponse(BaseModel):
     id: uuid.UUID
-    student_id: uuid.UUID
+    user_id: uuid.UUID
     date: date
     period: int
     present: bool

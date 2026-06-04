@@ -30,11 +30,11 @@ def create_leave_request(
     db: Session = Depends(get_db)
 ):
     # 수강생 존재 여부 확인
-    student = db.query(models.Student).filter(
-        models.Student.id == request.student_id
+    user = db.query(models.User).filter(
+        models.User.id == request.user_id
     ).first()
 
-    if not student:
+    if not user:
         raise HTTPException(status_code=404, detail="수강생을 찾을 수 없습니다")
 
     # DB에 저장
@@ -45,13 +45,13 @@ def create_leave_request(
 
     return leave_request
 
-@router.get("/{student_id}", response_model=list[LeaveRequestResponse])
+@router.get("/{user_id}", response_model=list[LeaveRequestResponse])
 def get_leave_request(
-    student_id: str,
+    user_id: str,
     db: Session = Depends(get_db)
 ):
     request = db.query(models.LeaveRequest).filter(
-        models.LeaveRequest.student_id == student_id
+        models.LeaveRequest.user_id == user_id
     ).all()
 
     return request
@@ -63,12 +63,12 @@ def get_leave_requests(
     date: Optional[date_type] = None, # 날짜 검색 추가
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.LeaveRequest).join(models.Student).filter(
-        models.Student.course_id == course_id
+    query = db.query(models.LeaveRequest).join(models.User).filter(
+        models.User.course_id == course_id
     )
 
     if name:
-        query = query.filter(models.Student.name.contains(name))
+        query = query.filter(models.User.name.contains(name))
 
     if date:
         query = query.filter(models.LeaveRequest.date == date)
