@@ -5,34 +5,16 @@ from app import models
 from app.schemas import UserCreate, UserResponse, StudentStatus
 from typing import Optional
 import uuid
+from app.auth import require_role
+from app.schemas import UserRole
+
 
 router = APIRouter(
     prefix="/user",
     tags=["user"]
 )
 
-@router.post("", response_model=UserResponse)
-def create_user(
-    user: UserCreate,
-    db: Session = Depends(get_db)
-):
-    # 수강생인 경우에만 강의 존재 여부 확인
-    if user.course_id:
-        course = db.query(models.Course).filter(
-            models.Course.id == user.course_id
-        ).first()
-
-        if not course:
-            raise HTTPException(status_code=404, detail="강의를 찾을 수 없습니다")
-
-
-    new_user = models.User(**user.model_dump())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-
+    
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: str,
@@ -66,7 +48,8 @@ def get_users(
 def update_user_status(
     user_id: str,
     status: StudentStatus,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(UserRole.ADMIN))
 ):
     user = db.query(models.User).filter(
         models.User.id == user_id
@@ -76,6 +59,26 @@ def update_user_status(
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
     user.status = status
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.patch("/{user_id}/role")
+def update_user_role(
+    user_id: str,
+    role: UserRole,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(UserRole.ADMIN))
+):
+    user = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+    
+    user.role = role
     db.commit()
     db.refresh(user)
     return user

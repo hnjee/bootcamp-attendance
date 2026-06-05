@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.auth import hash_password, verify_password, create_access_token
-from app.schemas import UserCreate, UserResponse
+from app.schemas import UserCreate, UserResponse, UserRole
 
 router = APIRouter(
     prefix="/auth",
@@ -29,6 +29,9 @@ def register(
     # 비밀번호 해시화
     user_data = user.model_dump()
     user_data["password"] = hash_password(user_data["password"])
+
+    # role 고정
+    user_data["role"] = UserRole.STUDENT
 
     new_user = models.User(**user_data)
     db.add(new_user)

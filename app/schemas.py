@@ -73,7 +73,6 @@ class UserCreate(BaseModel):
     phone: Optional[str] = None
     email: str
     password: str
-    role: UserRole = UserRole.STUDENT  # 기본값은 수강생
 
 class UserResponse(BaseModel):
     id: uuid.UUID
