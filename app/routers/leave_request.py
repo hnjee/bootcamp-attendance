@@ -12,6 +12,8 @@ import uuid
 import aiofiles
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from app.auth import require_role, get_current_user
+from app.schemas import UserRole
 
 llm = ChatOpenAI(
     model="gpt-4o",
@@ -27,23 +29,21 @@ router = APIRouter(
 @router.post("", response_model=LeaveRequestResponse)
 def create_leave_request(
     request: LeaveRequestCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)  # 로그인한 유저
 ):
-    # 수강생 존재 여부 확인
-    user = db.query(models.User).filter(
-        models.User.id == request.user_id
-    ).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="수강생을 찾을 수 없습니다")
-
     # DB에 저장
-    leave_request = models.LeaveRequest(**request.model_dump())
+    leave_request = models.LeaveRequest(
+        user_id=current_user.id,  # 자동으로 본인 id 들어감
+        **request.model_dump()
+    )
+
     db.add(leave_request)
     db.commit()
     db.refresh(leave_request)
 
     return leave_request
+
 
 @router.get("/{user_id}", response_model=list[LeaveRequestResponse])
 def get_leave_request(

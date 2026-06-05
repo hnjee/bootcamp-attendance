@@ -90,7 +90,6 @@ class UserResponse(BaseModel):
 
 # 출결 신고
 class LeaveRequestCreate(BaseModel):
-    user_id: uuid.UUID
     date: date
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
