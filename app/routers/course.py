@@ -4,10 +4,13 @@ from app.database import get_db
 from app import models
 from app.schemas import CourseCreate, CourseResponse, CourseStatus
 from typing import Optional
+from app.auth import require_role
+from app.schemas import UserRole
 
 router = APIRouter(
     prefix="/course",
-    tags=["course"]
+    tags=["course"],
+    dependencies=[Depends(require_role(UserRole.ADMIN))]  # 모든 API에 적용
 )
 
 @router.post("", response_model=CourseResponse)

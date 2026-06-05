@@ -6,6 +6,8 @@ from app.schemas import ClassAttendanceCreate, ClassAttendanceResponse
 from datetime import date as date_type
 import uuid
 from typing import Optional
+from app.auth import require_role, get_current_user
+from app.schemas import UserRole
 
 router = APIRouter(
     prefix="/class-attendance",
@@ -15,7 +17,8 @@ router = APIRouter(
 @router.post("", response_model=ClassAttendanceResponse)
 def create_class_attendance(
     attendance: ClassAttendanceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(UserRole.ADMIN, UserRole.TUTOR))
 ):
     # 수강생 존재 여부 확인
     user = db.query(models.User).filter(
@@ -35,8 +38,17 @@ def create_class_attendance(
 @router.get("/{user_id}", response_model=list[ClassAttendanceResponse])
 def get_class_attendance(
     user_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)  # 로그인 필수
 ):
+    # 수강생은 본인 것만 조회 가능
+    if current_user.role == UserRole.STUDENT:
+        if str(current_user.id) != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="본인 출결만 조회할 수 있습니다"
+            )
+
     attendance = db.query(models.ClassAttendance).filter(
         models.ClassAttendance.user_id == user_id
     ).all()
@@ -48,7 +60,8 @@ def get_class_attendances(
     course_id: uuid.UUID, # 필수 값 -> 리스트는 반드시 강의별로 
     name: Optional[str] = None,  # 학생명 검색 추가
     date: Optional[date_type] = None, # 날짜 검색 추가
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(require_role(UserRole.ADMIN, UserRole.TUTOR))
 ):
     query = db.query(models.ClassAttendance).join(models.User).filter(
         models.User.course_id == course_id
